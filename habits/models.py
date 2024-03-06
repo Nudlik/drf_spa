@@ -1,8 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from habits.validators import validate_time_to_complete, CheckLinkAndReward, validate_link_habit_is_pleasant, \
-    validate_link_habit_no_reward_no_link
+from habits.validators import validate_time_to_complete, CheckLinkAndReward, validate_link_habit_is_pleasant
 from utils.const import NULLABLE
 
 
@@ -29,7 +28,6 @@ class Habit(models.Model):
         **NULLABLE,
         validators=[
             validate_link_habit_is_pleasant,
-            validate_link_habit_no_reward_no_link,
         ],
         related_name='link_habits',
         verbose_name='Ссылка на привычку',
@@ -49,7 +47,7 @@ class Habit(models.Model):
         ordering = ['id']
 
     def __str__(self):
-        return f'Я буду {self.action} в {self.time_to_start} в/на {self.location}'
+        return f'"{self.action}" в "{self.time_to_start}" в/на "{self.location}"'
 
     def clean(self):
         for validator in self.validators:
