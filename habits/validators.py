@@ -1,4 +1,6 @@
 from django.core.exceptions import ValidationError
+from django.db.models import Model
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 
 
@@ -20,13 +22,16 @@ class CheckLinkAndReward:
     Можно заполнить только одно из двух полей.
     """
 
-    def __init__(self, link_habit, reward):
+    def __init__(self, link_habit: str, reward: str) -> None:
         self.link_habit = link_habit
         self.reward = reward
 
-    def __call__(self, data):
-        link_habit, link_habit_vb = getattr(data, self.link_habit), data._meta.get_field(self.link_habit).verbose_name
-        reward, reward_vb = getattr(data, self.reward), data._meta.get_field(self.reward).verbose_name
+    def __call__(self, data: Model) -> None:
+        link_habit: Model = getattr(data, self.link_habit)
+        link_habit_vb: str = data._meta.get_field(self.link_habit).verbose_name
+
+        reward: Model = getattr(data, self.reward)
+        reward_vb: str = data._meta.get_field(self.reward).verbose_name
 
         if reward and link_habit:
             raise ValidationError(f'Должно быть заполнено только одно из полей "{_(reward_vb)}" '
@@ -34,3 +39,15 @@ class CheckLinkAndReward:
 
         if not reward and not link_habit:
             raise ValidationError(f'Необходимо заполнить либо "{_(reward_vb)}", либо "{_(link_habit_vb)}".')
+
+
+def validate_link_habit_is_pleasant(link_habit_id: int) -> None:
+    """ В связанные привычки могут попадать только привычки с признаком приятной привычки. """
+
+    from habits.models import Habit
+
+    link_habit = get_object_or_404(Habit, id=link_habit_id)
+    if not link_habit.is_pleasant:
+        raise ValidationError(
+            _('В связанные привычки могут попадать только привычки с признаком приятной привычки.'),
+        )
