@@ -36,10 +36,10 @@ class CheckLinkAndReward:
 
     def __call__(self, data: T) -> None:
 
-        link_habit: T = getattr(data, self.link_habit)
+        link_habit: T | None = getattr(data, self.link_habit)
         link_habit_vb: str = data._meta.get_field(self.link_habit).verbose_name
 
-        reward: T = getattr(data, self.reward)
+        reward: T | None = getattr(data, self.reward)
         reward_vb: str = data._meta.get_field(self.reward).verbose_name
 
         if not data.is_pleasant:
