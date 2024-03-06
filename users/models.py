@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from utils.const import NULLABLE
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -44,7 +46,7 @@ class User(AbstractUser):
     username = None
 
     email = models.EmailField(unique=True, verbose_name='Почта')
-    telegram_id = models.PositiveIntegerField(unique=True, verbose_name='ID Телеграм')
+    telegram_id = models.PositiveBigIntegerField(**NULLABLE, unique=True, verbose_name='ID Телеграм')
 
     objects = UserManager()
 
