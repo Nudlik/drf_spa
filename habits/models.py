@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from habits.validators import validate_time_to_complete
+from habits.validators import validate_time_to_complete, CheckLinkAndReward
 from utils.const import NULLABLE
 
 
@@ -34,6 +34,10 @@ class Habit(models.Model):
     time_to_complete = models.IntegerField(validators=[validate_time_to_complete], verbose_name='Время на выполнение')
     is_public = models.BooleanField(verbose_name='Публичная ли привычка?')
 
+    validators = [
+        CheckLinkAndReward('link_habit', 'reward')
+    ]
+
     class Meta:
         verbose_name = 'Привычка'
         verbose_name_plural = 'Привычки'
@@ -41,3 +45,7 @@ class Habit(models.Model):
 
     def __str__(self):
         return f'Я буду {self.action} в {self.time_to_start} в/на {self.location}'
+
+    def clean(self):
+        for validator in self.validators:
+            validator(self)
