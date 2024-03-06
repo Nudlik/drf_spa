@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from habits.validators import validate_time_to_complete
 from utils.const import NULLABLE
 
 
@@ -30,7 +31,7 @@ class Habit(models.Model):
     )
     periodic = models.IntegerField(choices=PERIODIC.choices, default=PERIODIC.DAILY, verbose_name='Периодичность')
     reward = models.CharField(max_length=255, **NULLABLE, verbose_name='Награда')
-    time_to_complete = models.IntegerField(verbose_name='Время на выполнение')
+    time_to_complete = models.IntegerField(validators=[validate_time_to_complete], verbose_name='Время на выполнение')
     is_public = models.BooleanField(verbose_name='Публичная ли привычка?')
 
     class Meta:
