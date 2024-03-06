@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from habits.validators import validate_time_to_complete, CheckLinkAndReward, validate_link_habit_is_pleasant
+from habits.validators import validate_time_to_complete, CheckLinkAndReward, validate_link_habit_is_pleasant, \
+    validate_link_habit_no_reward_no_link
 from utils.const import NULLABLE
 
 
@@ -28,6 +29,7 @@ class Habit(models.Model):
         **NULLABLE,
         validators=[
             validate_link_habit_is_pleasant,
+            validate_link_habit_no_reward_no_link,
         ],
         related_name='link_habits',
         verbose_name='Ссылка на привычку',

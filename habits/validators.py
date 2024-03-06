@@ -51,3 +51,15 @@ def validate_link_habit_is_pleasant(link_habit_id: int) -> None:
         raise ValidationError(
             _('В связанные привычки могут попадать только привычки с признаком приятной привычки.'),
         )
+
+
+def validate_link_habit_no_reward_no_link(link_habit_id: int) -> None:
+    """ У приятной привычки не может быть вознаграждения или связанной привычки. """
+
+    from habits.models import Habit
+
+    link_habit = get_object_or_404(Habit, id=link_habit_id)
+    if link_habit.reward or link_habit.link_habit:
+        raise ValidationError(
+            _('У приятной привычки не может быть вознаграждения или связанной привычки.'),
+        )
