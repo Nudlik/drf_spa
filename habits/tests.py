@@ -31,6 +31,65 @@ class TestCrudHabit(TestCase):
         self.habit_no_is_pleasant.save()
         self.count_habits = Habit.objects.count()
 
+    def test_create_good(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
+
+    def test_create_habits_is_pleasant(self):
+        self.data['is_pleasant'] = True
+        self.data['reward'] = ''
+        self.data['link_habit'] = None
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
+
+    def test_create_habits_no_is_pleasant_and_reward(self):
+        self.data['is_pleasant'] = False
+        self.data['reward'] = '123'
+        self.data['link_habit'] = None
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
+
+    def test_create_habits_no_is_pleasant_and_link_habit(self):
+        self.data['is_pleasant'] = False
+        self.data['reward'] = ''
+        self.data['link_habit'] = self.habit_no_is_pleasant.id
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
+
+    def test_create_link_habit_no_is_pleasant(self):
+        self.data['is_pleasant'] = False
+        self.data['reward'] = ''
+        self.data['link_habit'] = self.habit_no_is_pleasant.id
+
+        self.habit_no_is_pleasant.is_pleasant = False
+        self.habit_no_is_pleasant.save()
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Habit.objects.count(), self.count_habits)
+
     def test_create_validator_is_pleasant_and_no_reward(self):
         self.data['is_pleasant'] = True
 
@@ -44,14 +103,6 @@ class TestCrudHabit(TestCase):
             'У приятной привычки не может быть вознаграждения или связанной привычки.'
         )
         self.assertEqual(Habit.objects.count(), self.count_habits)
-
-    def test_create_good(self):
-        self.client.force_login(self.user)
-        url = reverse('habits:habits-list')
-        response = self.client.post(url, self.data, 'application/json')
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
 
     def test_create_no_reward_and_no_link_habit(self):
         self.data['reward'] = ''
@@ -112,3 +163,13 @@ class TestCrudHabit(TestCase):
             'Время выполнения приятной привычки должно быть не больше 120 секунд,сейчас время на выполнения 121 секунд'
         )
         self.assertEqual(Habit.objects.count(), self.count_habits)
+
+    def test_create_save_owner(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
+        self.assertEqual(Habit.objects.last().owner, self.user)
+        self.assertEqual(response.data['owner'], self.user.id)

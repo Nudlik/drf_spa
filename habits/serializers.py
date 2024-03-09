@@ -16,4 +16,5 @@ class HabitSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         habit = self.Meta.model.objects.create(**validated_data)
         habit.owner = self.context['request'].user
+        habit.save()
         return habit
