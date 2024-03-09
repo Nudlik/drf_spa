@@ -9,6 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'email',
+            'password',
             'telegram_id',
             'first_name',
             'last_name'
