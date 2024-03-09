@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_yasg',
+    'django_celery_beat',
 
     'corsheaders',
 ]
@@ -221,3 +222,11 @@ CELERY_RESULT_BACKEND = env.str('REDIS_LOCATION')
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# настройки celery beat
+CELERY_BEAT_SCHEDULE = {
+    'Тестовая таска': {
+        'task': 'habits.tasks.my_task',
+        'schedule': timedelta(seconds=10),
+    },
+}
