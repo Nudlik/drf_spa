@@ -29,6 +29,7 @@ class TestCrudHabit(TestCase):
         copy_data['is_pleasant'] = True
         self.habit_no_is_pleasant = Habit.objects.create(**copy_data)
         self.habit_no_is_pleasant.save()
+        self.count_habits = Habit.objects.count()
 
     def test_create_validator_is_pleasant_and_no_reward(self):
         self.data['is_pleasant'] = True
@@ -42,6 +43,7 @@ class TestCrudHabit(TestCase):
             response.data['non_field_errors'][0],
             'У приятной привычки не может быть вознаграждения или связанной привычки.'
         )
+        self.assertEqual(Habit.objects.count(), self.count_habits)
 
     def test_create_good(self):
         self.client.force_login(self.user)
@@ -49,6 +51,7 @@ class TestCrudHabit(TestCase):
         response = self.client.post(url, self.data, 'application/json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Habit.objects.count(), self.count_habits + 1)
 
     def test_create_no_reward_and_no_link_habit(self):
         self.data['reward'] = ''
@@ -63,6 +66,7 @@ class TestCrudHabit(TestCase):
             response.data['non_field_errors'][0],
             'Необходимо заполнить либо "Награда", либо "Ссылка на привычку".'
         )
+        self.assertEqual(Habit.objects.count(), self.count_habits)
 
     def test_create_reward_and_link_habit(self):
         self.data['reward'] = '123'
@@ -77,6 +81,7 @@ class TestCrudHabit(TestCase):
             response.data['non_field_errors'][0],
             'Должно быть заполнено только одно из полей "Награда" или "Ссылка на привычку".'
         )
+        self.assertEqual(Habit.objects.count(), self.count_habits)
 
     def test_create_is_pleasant_and_reward_or_link_habit(self):
         self.data['is_pleasant'] = True
@@ -92,6 +97,7 @@ class TestCrudHabit(TestCase):
             response.data['non_field_errors'][0],
             'У приятной привычки не может быть вознаграждения или связанной привычки.'
         )
+        self.assertEqual(Habit.objects.count(), self.count_habits)
 
     def test_create_time_to_complete(self):
         self.data['time_to_complete'] = 121
@@ -101,8 +107,8 @@ class TestCrudHabit(TestCase):
         response = self.client.post(url, self.data, 'application/json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        print(response.data['time_to_complete'][0])
         self.assertEqual(
             response.data['time_to_complete'][0],
             'Время выполнения приятной привычки должно быть не больше 120 секунд,сейчас время на выполнения 121 секунд'
         )
+        self.assertEqual(Habit.objects.count(), self.count_habits)
