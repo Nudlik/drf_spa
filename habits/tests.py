@@ -3,20 +3,20 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 
+from habits.models import Habit
+
 
 class TestCrudHabit(TestCase):
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='1@1.ru', password='1234')
-
         self.user.save()
 
-    def test_create_validator_is_pleasant_and_no_reward(self):
-        data = {
+        self.data = {
             "location": "1",
             "time_to_start": "21:51",
             "action": "чихнуть1",
-            "is_pleasant": True,
+            "is_pleasant": False,
             "periodic": 0,
             "reward": "сказать будь здоров",
             "time_to_complete": 120,
@@ -24,12 +24,71 @@ class TestCrudHabit(TestCase):
             "owner": None,
             "link_habit": None
         }
+
+        copy_data = self.data.copy()
+        copy_data['is_pleasant'] = True
+        self.habit_no_is_pleasant = Habit.objects.create(**copy_data)
+        self.habit_no_is_pleasant.save()
+
+    def test_create_validator_is_pleasant_and_no_reward(self):
+        self.data['is_pleasant'] = True
+
         self.client.force_login(self.user)
         url = reverse('habits:habits-list')
-        response = self.client.post(url, data, 'application/json')
-        print(response.status_code)
-        print(response.data)
-        print(response)
-        # self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['non_field_errors'][0],
+            'У приятной привычки не может быть вознаграждения или связанной привычки.'
+        )
+
+    def test_create_good(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+    def test_create_no_reward_and_no_link_habit(self):
+        self.data['reward'] = ''
+        self.data['link_habit'] = None
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['non_field_errors'][0],
+            'Необходимо заполнить либо "Награда", либо "Ссылка на привычку".'
+        )
+
+    def test_create_reward_and_link_habit(self):
+        self.data['reward'] = '123'
+        self.data['link_habit'] = self.habit_no_is_pleasant.id
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['non_field_errors'][0],
+            'Должно быть заполнено только одно из полей "Награда" или "Ссылка на привычку".'
+        )
+
+    def test_create_is_pleasant_and_reward_or_link_habit(self):
+        self.data['is_pleasant'] = True
+        self.data['reward'] = '123'
+        self.data['link_habit'] = self.habit_no_is_pleasant.id
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['non_field_errors'][0],
+            'У приятной привычки не может быть вознаграждения или связанной привычки.'
+        )
