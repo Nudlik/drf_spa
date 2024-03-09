@@ -92,3 +92,17 @@ class TestCrudHabit(TestCase):
             response.data['non_field_errors'][0],
             'У приятной привычки не может быть вознаграждения или связанной привычки.'
         )
+
+    def test_create_time_to_complete(self):
+        self.data['time_to_complete'] = 121
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.post(url, self.data, 'application/json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        print(response.data['time_to_complete'][0])
+        self.assertEqual(
+            response.data['time_to_complete'][0],
+            'Время выполнения приятной привычки должно быть не больше 120 секунд,сейчас время на выполнения 121 секунд'
+        )

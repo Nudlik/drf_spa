@@ -47,11 +47,11 @@ class CheckLinkAndReward:
 
         if not data.is_pleasant:
             if reward and link_habit:
-                raise ValidationError(f'Должно быть заполнено только одно из полей "{_(reward_vb)}" '
-                                      f'или "{_(link_habit_vb)}".')
+                raise ValidationError(_(f'Должно быть заполнено только одно из полей "{_(reward_vb)}" '
+                                      f'или "{_(link_habit_vb)}".'))
 
             if not reward and not link_habit:
-                raise ValidationError(f'Необходимо заполнить либо "{_(reward_vb)}", либо "{_(link_habit_vb)}".')
+                raise ValidationError(_(f'Необходимо заполнить либо "{_(reward_vb)}", либо "{_(link_habit_vb)}".'))
 
         # У приятной привычки не может быть вознаграждения или связанной привычки.
         elif reward or link_habit:
