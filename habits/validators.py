@@ -35,6 +35,9 @@ class CheckLinkAndReward:
         self.reward = reward
 
     def __call__(self, data: T) -> None:
+        if isinstance(data, dict):
+            from habits.models import Habit
+            data = Habit(**data)
 
         link_habit: T | None = getattr(data, self.link_habit)
         link_habit_vb: str = data._meta.get_field(self.link_habit).verbose_name
@@ -57,12 +60,12 @@ class CheckLinkAndReward:
             )
 
 
-def validate_link_habit_is_pleasant(link_habit_id: int) -> None:
+def validate_link_habit_is_pleasant(link_habit_id: T) -> None:
     """ В связанные привычки могут попадать только привычки с признаком приятной привычки. """
 
     from habits.models import Habit
 
-    link_habit = get_object_or_404(Habit, id=link_habit_id)
+    link_habit = get_object_or_404(Habit, id=link_habit_id.id)
     if not link_habit.is_pleasant:
         raise ValidationError(
             _('В связанные привычки могут попадать только привычки с признаком приятной привычки.'),
