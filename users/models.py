@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from users.validators import check_time_zone
 from utils.const import NULLABLE
 
 
@@ -47,6 +48,7 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True, verbose_name='Почта')
     telegram_id = models.PositiveBigIntegerField(**NULLABLE, unique=True, verbose_name='ID Телеграм')
+    time_zone = models.CharField(max_length=8, validators=[check_time_zone], **NULLABLE, verbose_name='Часовой пояс')
 
     objects = UserManager()
 
