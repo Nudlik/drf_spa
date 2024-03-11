@@ -225,8 +225,8 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 
 # настройки celery beat
 CELERY_BEAT_SCHEDULE = {
-    'Тестовая таска': {
-        'task': 'habits.tasks.my_task',
-        'schedule': timedelta(seconds=10),
+    'Напоминание юзерам о привычке': {
+        'task': 'habits.tasks.habit_reminder',
+        'schedule': timedelta(seconds=60),
     },
 }

@@ -1,3 +1,5 @@
+from datetime import time
+
 import requests
 from requests import Response
 
@@ -12,3 +14,28 @@ def tg_send_message(message: str, chat_id: str | int) -> Response | None:
     }
     response = requests.post(url, data=data)
     return response
+
+
+def get_user_timezone_diff(utc_time: str) -> tuple[int, int]:
+    sign = -1 if utc_time[3] == '-' else 1
+    hours, minutes = utc_time[4:].split(':') if utc_time.count(':') == 1 else (utc_time[4:], 0)
+    return int(hours) * sign, int(minutes) * sign
+
+
+def to_utc(t: time, offset: str) -> time:
+    offset_h, offset_m = get_user_timezone_diff(offset)
+
+    h = t.hour - offset_h
+    m = t.minute - offset_m
+
+    if m < 0:
+        h, m = h - 1, m + 60
+    elif m >= 60:
+        h, m = h + 1, m - 60
+
+    if h < 0:
+        h += 24
+    elif h >= 24:
+        h -= 24
+
+    return time(h, m)
