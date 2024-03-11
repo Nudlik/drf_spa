@@ -14,6 +14,7 @@ def habit_reminder():
     tl_minus = (now - time_lag).time()
 
     # мок
+    # from datetime import time, date
     # now = time(hour=3, minute=15, tzinfo=timezone(timedelta(hours=7)))
     # tl_plus = (datetime.combine(date.today(), now) + time_lag).time()
     # tl_minus = (datetime.combine(date.today(), now) - time_lag).time()
@@ -22,11 +23,10 @@ def habit_reminder():
         telegram_id__isnull=False,
         is_active=True,
         time_zone__isnull=False
-    )
+    ).prefetch_related('habit')
 
     for user in users:
-        habits = user.habit.all()
-        for habit in habits:
+        for habit in user.habit.all():
             tu = to_utc(habit.time_to_start, user.time_zone)
             if tl_minus <= tu <= tl_plus:
                 tg_send_message(
