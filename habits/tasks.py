@@ -2,8 +2,10 @@ from datetime import timedelta, datetime, timezone
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
-from habits.services import tg_send_message, to_utc
+from habits.models import Habit
+from habits.services import tg_send_message, to_utc, get_user_timezone_diff
 
 
 @shared_task
@@ -26,7 +28,10 @@ def habit_reminder():
     ).prefetch_related('habit')
 
     for user in users:
-        for habit in user.habit.all():
+        h, m = get_user_timezone_diff(user.time_zone)
+        tz_time = now.astimezone(timezone(timedelta(hours=h, minutes=m)))
+        is_day = tz_time.weekday() + 1
+        for habit in user.habit.filter(Q(periodic=is_day) | Q(periodic=Habit.PERIODIC.DAILY)):
             tu = to_utc(habit.time_to_start, user.time_zone)
             if tl_minus <= tu <= tl_plus:
                 tg_send_message(
