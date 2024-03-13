@@ -9,7 +9,7 @@ from habits.models import Habit
 from habits.services import to_utc
 
 
-class TestCrudHabit(TestCase):
+class TestCRUDHabit(TestCase):
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='1@1.ru', password='1234')
@@ -176,6 +176,44 @@ class TestCrudHabit(TestCase):
         self.assertEqual(Habit.objects.count(), self.count_habits + 1)
         self.assertEqual(Habit.objects.last().owner, self.user)
         self.assertEqual(response.data['owner'], self.user.id)
+
+    def test_published_endpoint(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-published')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), self.count_habits)
+
+    def test_published_endpoint_page_is_None(self):
+        Habit.objects.all().delete()
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-published')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], [])
+
+        next_url = response.data['next']
+        next_response = self.client.get(next_url)
+        self.assertEqual(next_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_habit_queryset(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 0)
+
+        self.data['owner'] = self.user
+        Habit.objects.create(**self.data)
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['owner'], self.user.id)
 
 
 class ServiceTestCase(TestCase):
