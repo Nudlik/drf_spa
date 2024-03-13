@@ -1,9 +1,12 @@
+from datetime import time
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 
 from habits.models import Habit
+from habits.services import to_utc
 
 
 class TestCrudHabit(TestCase):
@@ -173,3 +176,51 @@ class TestCrudHabit(TestCase):
         self.assertEqual(Habit.objects.count(), self.count_habits + 1)
         self.assertEqual(Habit.objects.last().owner, self.user)
         self.assertEqual(response.data['owner'], self.user.id)
+
+
+class ServiceTestCase(TestCase):
+
+    def setUp(self) -> None:
+        pass
+
+    def test_to_utc_positive_offset(self):
+        """ Проверяем, что функция корректно преобразует время в UTC для положительного сдвига """
+
+        result = to_utc(time(10, 30), 'UTC+3')
+        self.assertEqual(result, time(7, 30))
+
+    def test_to_utc_negative_offset(self):
+        """ Проверяем, что функция корректно преобразует время в UTC для отрицательного сдвига """
+
+        result = to_utc(time(10, 30), 'UTC-5')
+        self.assertEqual(result, time(15, 30))
+
+    def test_to_utc_zero_offset(self):
+        """ Проверяем, что функция корректно обрабатывает нулевой сдвиг """
+
+        result = to_utc(time(10, 30), 'UTC-0')
+        self.assertEqual(result, time(10, 30))
+
+    def test_to_utc_crossing_midnight(self):
+        """ Проверяем, что функция корректно обрабатывает переход через полночь """
+
+        result = to_utc(time(3, 30), 'UTC+4')
+        self.assertEqual(result, time(23, 30))
+
+    def test_to_utc_negative_minute(self):
+        """ Проверяем, что функция корректно обрабатывает случай, когда минуты отрицательны """
+
+        result = to_utc(time(1, 30), 'UTC+2:30')
+        self.assertEqual(result, time(23, 00))
+
+    def test_to_utc_positive_minute(self):
+        """ Проверяем, что функция корректно обрабатывает случай, когда минуты положительны """
+
+        result = to_utc(time(23, 30), 'UTC-2:30')
+        self.assertEqual(result, time(2, 00))
+
+    def test_to_utc_negative_minute_adjustment(self):
+        """ Проверяем, что функция корректно обрабатывает случай, когда минуты отрицательны и происходит коррекция """
+
+        result = to_utc(time(1, 0), 'UTC+2:30')
+        self.assertEqual(result, time(22, 30))
