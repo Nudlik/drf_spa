@@ -145,6 +145,7 @@ AUTH_USER_MODEL = 'users.User'
 
 # настройки Telegram
 TELEGRAM_BOT_TOKEN = env.str('TELEGRAM_BOT_TOKEN')
+TELEGRAM_ENABLE_TEST_ENDPOINT = env.bool('TELEGRAM_ENABLE_TEST_ENDPOINT', False)
 
 # настройки REST фреймворка
 REST_FRAMEWORK = {
