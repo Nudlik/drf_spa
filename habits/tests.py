@@ -1,12 +1,17 @@
-from datetime import time
+from datetime import time, datetime, timedelta, timezone, date
+from unittest.mock import patch, MagicMock
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
+from requests import Response
 from rest_framework import status
 
+from config import settings
 from habits.models import Habit
-from habits.services import to_utc
+from habits.services import to_utc, tg_send_message
+from habits.tasks import habit_reminder, get_now, get_current_day
 
 
 class TestCRUDHabit(TestCase):
@@ -262,3 +267,136 @@ class ServiceTestCase(TestCase):
 
         result = to_utc(time(1, 0), 'UTC+2:30')
         self.assertEqual(result, time(22, 30))
+
+
+class HabitModelTestCase(TestCase):
+
+    def setUp(self) -> None:
+        self.data = {
+            "location": "1",
+            "time_to_start": "21:51",
+            "action": "test",
+            "is_pleasant": False,
+            "periodic": 0,
+            "reward": "test",
+            "time_to_complete": 0,
+            "is_public": True,
+            "owner": None,
+            "link_habit": None
+        }
+        self.habit = Habit.objects.create(**self.data)
+        self.habit.save()
+
+    def test_repr(self):
+        self.assertEqual(str(self.habit), '"test" в "21:51" в/на "1"')
+
+    def test_clean(self):
+        data = self.data.copy()
+        data['reward'] = ''
+        data['link_habit'] = None
+        model = Habit(**data)
+        try:
+            model.clean()
+        except ValidationError as e:
+            self.assertEqual(e.args[0], 'Необходимо заполнить либо "Награда", либо "Ссылка на привычку".')
+        else:
+            self.fail('ValidationError was not raised')
+
+
+class TelegramTestCase(TestCase):
+
+    def setUp(self) -> None:
+        pass
+
+    @patch('requests.post')
+    def test_tg_send_message(self, mock_post):
+        message = 'Test message'
+        chat_id = 'test_chat_id'
+        expected_data = {
+            'chat_id': chat_id,
+            'text': message
+        }
+        expected_response = MagicMock(spec=Response)
+        mock_post.return_value = expected_response
+
+        response = tg_send_message(message, chat_id)
+        token = settings.TELEGRAM_BOT_TOKEN
+        mock_post.assert_called_once_with(f'https://api.telegram.org/bot{token}/sendMessage', data=expected_data)
+
+        self.assertEqual(response, expected_response)
+
+
+class TasksTestCase(TestCase):
+
+    def setUp(self) -> None:
+        self.user = get_user_model().objects.create_user(
+            email='1@1.ru', password='1234', time_zone='UTC+7', telegram_id=123
+        )
+
+        data = {
+            'location': '1',
+            'action': '1',
+            'is_pleasant': False,
+            'periodic': 0,
+            'reward': '1',
+            'time_to_complete': 0,
+            'owner': self.user,
+            'is_public': True,
+            'link_habit': None
+        }
+        self.habit1 = Habit.objects.create(time_to_start=time(10, 15, 00), **data)
+        self.habit2 = Habit.objects.create(time_to_start=time(10, 15, 30), **data)
+        self.habit3 = Habit.objects.create(time_to_start=time(10, 14, 30), **data)
+
+        self.habit4 = Habit.objects.create(time_to_start=time(10, 14, 29), **data)
+        self.habit5 = Habit.objects.create(time_to_start=time(10, 15, 31), **data)
+
+        self.call_count = 0
+
+    @staticmethod
+    def mock_time():
+        return time(hour=3, minute=15, tzinfo=timezone(timedelta(hours=7)))
+
+    # @staticmethod
+    def mock_tg_send_message(self, *args, **kwargs):
+        self.call_count += 1
+
+    @patch('habits.tasks.get_current_day')
+    @patch('habits.tasks.get_now')
+    def test_habit_reminder(
+            self,
+            mock_now,
+            mock_get_current_day,
+    ):
+        now = self.mock_time()
+        time_lag = timedelta(seconds=30)
+        tl_plus = (datetime.combine(date.today(), now) + time_lag).time()
+        tl_minus = (datetime.combine(date.today(), now) - time_lag).time()
+
+        mock_now.return_value = now, tl_plus, tl_minus
+        mock_get_current_day.return_value = 0
+
+        with patch('habits.tasks.tg_send_message', self.mock_tg_send_message):
+            habit_reminder()
+
+        self.assertEqual(self.call_count, 3)
+
+    def test_get_now(self):
+        now, tl_plus, tl_minus = get_now()
+        time_diff = (
+                (tl_plus.hour * 3600 + tl_plus.minute * 60 + tl_plus.second) -
+                (tl_minus.hour * 3600 + tl_minus.minute * 60 + tl_minus.second)
+        )
+
+        self.assertIsInstance(now, datetime)
+        self.assertIsInstance(tl_plus, time)
+        self.assertIsInstance(tl_minus, time)
+        self.assertEqual(time_diff, 60)
+
+    def test_get_current_day(self):
+        now = datetime.now(tz=timezone(timedelta(hours=0)))
+        current_day1 = get_current_day('UTC+7', now)
+        current_day2 = get_current_day('UTC-7', now)
+
+        self.assertEqual(current_day1, 4)
+        self.assertEqual(current_day2, 3)
