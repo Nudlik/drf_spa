@@ -228,6 +228,7 @@ class TestCRUDHabit(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['res'], 'Only for superusers')
 
+    @override_settings(TELEGRAM_ENABLE_TEST_ENDPOINT=True)
     def test_habit_test_is_superuser(self):
         self.user.is_superuser = True
         self.user.save()
