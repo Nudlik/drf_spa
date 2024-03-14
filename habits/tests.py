@@ -9,9 +9,8 @@ from requests import Response
 from rest_framework import status
 
 from config import settings
-from config.settings import TELEGRAM_ENABLE_TEST_ENDPOINT
 from habits.models import Habit
-from habits.services import to_utc, tg_send_message
+from habits.services import to_utc, tg_send_message, get_message
 from habits.tasks import habit_reminder, get_now, get_current_day
 
 
@@ -300,6 +299,41 @@ class ServiceTestCase(TestCase):
         result = to_utc(time(1, 0), 'UTC+2:30')
         self.assertEqual(result, time(22, 30))
 
+    def test_get_message(self):
+        data = {
+            "location": "1",
+            "time_to_start": "21:51",
+            "action": "test",
+            "is_pleasant": False,
+            "periodic": 0,
+            "reward": "test",
+            "time_to_complete": 0,
+            "is_public": True,
+            "owner": None,
+            "link_habit": None
+        }
+        habit = Habit.objects.create(**data)
+        result = get_message(habit)
+        self.assertEqual(result, 'Выполнить: "test" в "21:51" в/на "1"\n'
+                                 'В награду получить: "test"\n'
+                                 'Время на выполнения приятностей: "0 сек."')
+
+        data['is_pleasant'] = True
+        data['reward'] = ''
+        habit_pleasant = Habit.objects.create(**data)
+        result = get_message(habit_pleasant)
+        self.assertEqual(result, 'Выполнить: "test" в "21:51" в/на "1"\n'
+                                 'В награду получить: ""\n'
+                                 'Время на выполнения приятностей: "0 сек."')
+
+        data['is_pleasant'] = False
+        data['link_habit'] = habit_pleasant
+        habit2 = Habit.objects.create(**data)
+        result = get_message(habit2)
+        self.assertEqual(result, 'Выполнить: "test" в "21:51" в/на "1"\n'
+                                 'В награду выполнить приятную привычку: "test"\n'
+                                 'Время на выполнения приятностей: "0 сек."')
+
 
 class HabitModelTestCase(TestCase):
 
@@ -426,7 +460,7 @@ class TasksTestCase(TestCase):
         self.assertEqual(time_diff, 60)
 
     def test_get_current_day(self):
-        now = datetime.now(tz=timezone(timedelta(hours=0)))
+        now = datetime(2020, 1, 2, 0, 0, 0, tzinfo=timezone(timedelta(hours=0)))
         current_day1 = get_current_day('UTC+7', now)
         current_day2 = get_current_day('UTC-7', now)
 
