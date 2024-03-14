@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from habits.models import Habit
-from habits.services import tg_send_message, to_utc, get_user_timezone_diff
+from habits.services import tg_send_message, to_utc, get_user_timezone_diff, get_message
 
 
 def get_now() -> (datetime, time, time):
@@ -45,7 +45,8 @@ def habit_reminder() -> None:
         for habit in habits:
             tu = to_utc(habit.time_to_start, user.time_zone)
             if tl_minus <= tu <= tl_plus:
+                message = get_message(habit)
                 tg_send_message(
-                    message=str(habit),
+                    message=message,
                     chat_id=user.telegram_id
                 )

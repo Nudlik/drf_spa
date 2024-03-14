@@ -4,6 +4,7 @@ import requests
 from requests import Response
 
 from config.settings import TELEGRAM_BOT_TOKEN
+from habits.models import Habit
 
 
 def tg_send_message(message: str, chat_id: str | int) -> Response | None:
@@ -45,3 +46,16 @@ def to_utc(t: time, offset: str) -> time:
         h -= 24
 
     return time(h, m)
+
+
+def get_message(habit: Habit) -> str:
+    """ Составляем сообщение. """
+
+    msg = f'Выполнить: "{habit.action}" в "{habit.time_to_start}" в/на "{habit.location}"'
+    if habit.link_habit:
+        reward = f'В награду выполнить приятную привычку: "{habit.link_habit.action}"'
+    else:
+        reward = f'В награду получить: "{habit.reward}"'
+    time_to_complete = f'Время на выполнения приятностей: "{habit.time_to_complete} сек."'
+
+    return '\n'.join([msg, reward, time_to_complete])
