@@ -7,6 +7,8 @@ from config.settings import TELEGRAM_BOT_TOKEN
 
 
 def tg_send_message(message: str, chat_id: str | int) -> Response | None:
+    """ Отправка сообщения в телеграм. """
+
     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
     data = {
         'chat_id': chat_id,
@@ -17,12 +19,16 @@ def tg_send_message(message: str, chat_id: str | int) -> Response | None:
 
 
 def get_user_timezone_diff(utc_time: str) -> tuple[int, int]:
+    """ Получаем разницу часового пояса пользователя. """
+
     sign = -1 if utc_time[3] == '-' else 1
     hours, minutes = utc_time[4:].split(':') if utc_time.count(':') == 1 else (utc_time[4:], 0)
     return int(hours) * sign, int(minutes) * sign
 
 
 def to_utc(t: time, offset: str) -> time:
+    """ Конвертируем время в UTC. """
+
     offset_h, offset_m = get_user_timezone_diff(offset)
 
     h = t.hour - offset_h

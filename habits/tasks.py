@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime, timezone, time
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
@@ -8,7 +8,9 @@ from habits.models import Habit
 from habits.services import tg_send_message, to_utc, get_user_timezone_diff
 
 
-def get_now():
+def get_now() -> (datetime, time, time):
+    """ Получаем текущую дату в UTC+0 и время погрешности для выборки уведомлений """
+
     now = datetime.now(tz=timezone(timedelta(hours=0)))
     time_lag = timedelta(seconds=30)
     tl_plus = (now + time_lag).time()
@@ -16,7 +18,9 @@ def get_now():
     return now, tl_plus, tl_minus
 
 
-def get_current_day(user_timezone, now):
+def get_current_day(user_timezone: str, now: datetime) -> int:
+    """ Получаем текущий день недели с учетом часового пояса пользователя """
+
     h, m = get_user_timezone_diff(user_timezone)
     tz_time = now.astimezone(timezone(timedelta(hours=h, minutes=m)))
     day = tz_time.weekday() + 1
@@ -24,7 +28,9 @@ def get_current_day(user_timezone, now):
 
 
 @shared_task
-def habit_reminder():
+def habit_reminder() -> None:
+    """ Напоминания о привычках, рассылка в тг """
+
     now, tl_plus, tl_minus = get_now()
 
     users = get_user_model().objects.filter(
