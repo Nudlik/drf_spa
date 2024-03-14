@@ -3,12 +3,13 @@ from unittest.mock import patch, MagicMock
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from requests import Response
 from rest_framework import status
 
 from config import settings
+from config.settings import TELEGRAM_ENABLE_TEST_ENDPOINT
 from habits.models import Habit
 from habits.services import to_utc, tg_send_message
 from habits.tasks import habit_reminder, get_now, get_current_day
@@ -18,7 +19,6 @@ class TestCRUDHabit(TestCase):
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='1@1.ru', password='1234')
-        self.user.save()
 
         self.data = {
             "location": "1",
@@ -219,6 +219,37 @@ class TestCRUDHabit(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['owner'], self.user.id)
+
+    def test_habit_test_user(self):
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-test')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['res'], 'Only for superusers')
+
+    def test_habit_test_is_superuser(self):
+        self.user.is_superuser = True
+        self.user.save()
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-test')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['res'], 'Endpoint was called')
+
+    @override_settings(TELEGRAM_ENABLE_TEST_ENDPOINT=False)
+    def test_habit_test_is_superuser_endpoint_disabled(self):
+        self.user.is_superuser = True
+        self.user.save()
+
+        self.client.force_login(self.user)
+        url = reverse('habits:habits-test')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['res'], 'Endpoint is disabled')
 
 
 class ServiceTestCase(TestCase):
