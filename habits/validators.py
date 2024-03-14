@@ -65,7 +65,8 @@ def validate_link_habit_is_pleasant(link_habit_id: T) -> None:
 
     from habits.models import Habit
 
-    link_habit = get_object_or_404(Habit, id=link_habit_id.id)
+    pk = link_habit_id if isinstance(link_habit_id, int) else link_habit_id.pk
+    link_habit = get_object_or_404(Habit, id=pk)
     if not link_habit.is_pleasant:
         raise ValidationError(
             _('В связанные привычки могут попадать только привычки с признаком приятной привычки.'),
