@@ -1,0 +1,12 @@
+/__pycache__
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.idea
+
+/venv
+README.md
+.env.example
+/htmlcov
+.coverage
