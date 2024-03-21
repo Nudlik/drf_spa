@@ -13,6 +13,15 @@
   https://github.com/Nudlik/drf_spa.git
   ```
 
+  - Запустить и поднять через докер или пропустить и проделать пункты ниже
+    ``` PowerShell
+    docker-compose build
+    ```
+    - Запуск контейнеров на фоне с флагом -d
+    ``` PowerShell
+    docker-compose up 
+    ```
+
 - Cоздать виртуальное окружение
   ``` PowerShell
   - python -m venv venv
